@@ -16,9 +16,17 @@ MINGW=x86_64-w64-mingw32-gcc-7.3-posix
 all: linux64 windows64 macos64 linux32 macos32 windows32 
 
 depends:
-	ssh-keygen -t ed25519 -f configs/id_ed25519 -N ''
-	echo "Create a user with a /bin/false shell on the target ssh server that will be used "
-	echo "for socks forwarding. Also append the genereate pubkey to authorized_keys"
+	ssh-keygen -t ed25519 -f configs/id_ed25519 -N '' -c ${NAME}
+	@echo
+	@echo "================================================="
+	@echo "Create a user with a /bin/false shell on the target ssh server."
+	@echo "Append the following line to that user's authorized_keys file:"
+	@echo
+	@echo "NO-X11-FORWARDING PERMITOPEN=0.0.0.0:1080 `cat ./configs/id_ed25519.pub`"
+	@echo
+	@echo "If you know your targets' public IP, you can also prepend the above with:"
+	@echo "FROM=<ip or hostname>"
+	@echo "================================================="
 
 linux64:
 	GOOS=linux GOARCH=amd64 ${BUILD} ${LINUX_LDFLAGS} -o ${OUT_LINUX}64 ${SRC}
