@@ -47,7 +47,7 @@ var config = mainConfig{}
 
 func init() {
 	// unpack the configs and ssh keys from the binary
-	// the were packed at compile-time
+	// that were packed at compile-time
 	box := packr.NewBox("../../configs")
 	configBytes := box.Bytes("config.json")
 	if err := json.Unmarshal(configBytes, &config); err != nil {
@@ -59,11 +59,10 @@ func init() {
 }
 
 // forwardService implements reverse port forwarding similar to the -R flag
-// in openssh-client. Configuration is done in the /configs/ssh.json file.
-// NOTE The generated keys and ssh.json data are embedded in the binary so
+// in openssh-client. Configuration is done in the /configs/config.json file.
+// NOTE The generated keys and config.json data are embedded in the binary so
 // take the appropriate precautions when setting up the ssh server user.
 func forwardService() {
-
 	sshClientConf := &ssh.ClientConfig{
 		User:            config.SSH.Username,
 		Auth:            config.SSH.PrivKey,
@@ -76,26 +75,29 @@ func forwardService() {
 		log.Fatalln(fmt.Sprintf("SSH Conn Failed: %s", err))
 	}
 
-	// Publish the designated local port to the same port on the remote SSH server
+	// Publish the designated local port to the configured port on the remote SSH server
 	remoteListener, err := serverConn.Listen("tcp", config.Socks.Remote)
 	if err != nil {
 		log.Fatalln(fmt.Sprintf("Reverse port-forward failed : %s", err))
 	}
 	defer remoteListener.Close()
 
-	// Handle incoming request from the remote tunnel
+	// Handle incoming requests from the remote tunnel
 	for {
-		// Open a (local) connection to localEndpoint whose content will be forwarded
+		// Grab a handle to the pre-configured local port that will be sent to the remote
+		// SSH server
 		local, err := net.Dial("tcp", config.Socks.Local)
 		if err != nil {
 			log.Fatalln(fmt.Sprintf("Unable to start local listen: %s", err))
 		}
 
+		// Grab a handle on the remote port
 		remote, err := remoteListener.Accept()
 		if err != nil {
 			log.Fatalln(fmt.Sprintf("Unable to accept remote traffic locally: %s", err))
 		}
 
+		// Swap IO from the local and remote hanles
 		handleClient(remote, local)
 	}
 
@@ -143,6 +145,6 @@ func darnSocks() {
 
 func main() {
 	go darnSocks()
-	fmt.Printf("Serving on remote: %s", config.Socks.Remote)
+	fmt.Printf("Serving on remote: %s\n", config.Socks.Remote)
 	forwardService()
 }
