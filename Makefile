@@ -11,17 +11,16 @@ STRIP=-s
 LINUX_LDFLAGS=--ldflags "${STRIP} -w"
 WIN_LDFLAGS=--ldflags "${STRIP} -w -H windowsgui"
 
-MINGW=x86_64-w64-mingw32-gcc-7.3-posix
-
 all: linux64 windows64 macos64 linux32 macos32 windows32 
 
 depends:
-	ssh-keygen -t ed25519 -f configs/id_ed25519 -N '' -c ${NAME}
+	ssh-keygen -t ed25519 -f configs/id_ed25519 -N '' -C ${NAME}
 	@echo
 	@echo "================================================="
 	@echo "Create a user with a /bin/false shell on the target ssh server."
-	@echo "Append the following line to that user's authorized_keys file:"
+	@echo "useradd -s /bin/false -m -d /home/sshuser -N sshuser"
 	@echo
+	@echo "Append the following line to that user's authorized_keys file:"
 	@echo "NO-X11-FORWARDING PERMITOPEN=0.0.0.0:1080 `cat ./configs/id_ed25519.pub`"
 	@echo
 	@echo "If you know your targets' public IP, you can also prepend the above with:"
@@ -41,4 +40,4 @@ macos32:
 windows32:
 	GOOS=windows GOARCH=386 ${BUILD} ${WIN_LDFLAGS} -o ${OUT_WINDOWS}32.exe ${SRC}
 
-.PHONY: linux64 windows64 macos64 linux32 macos32 windows32 clean listen
+.PHONY: linux64 windows64 macos64 linux32 macos32 windows32

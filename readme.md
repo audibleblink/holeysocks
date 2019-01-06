@@ -6,6 +6,9 @@ A simple cross-platform reverse socks proxy.
 ## Getting Started
 
 ```bash
+# needed for embedding configs in the binary
+go get -u github.com/gobuffalo/packr/packr
+
 go get github.com/audibleblink/HoleySocks/...
 cd $GOPATH/src/github.com/audibleblink/HoleySocks
 ... edit configs/config.json ...
