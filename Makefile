@@ -4,8 +4,8 @@ OUT_LINUX=binaries/linux/${NAME}
 OUT_MACOS=binaries/macos/${NAME}
 OUT_WINDOWS=binaries/windows/${NAME}
 
-BUILD=packr build
-SRC=cmd/HoleySocks/main.go
+BUILD=packr2 build
+SRC=cmd/HoleySocks/*
 
 STRIP=-s
 LINUX_LDFLAGS=--ldflags "${STRIP} -w"

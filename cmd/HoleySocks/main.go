@@ -49,12 +49,19 @@ func init() {
 	// unpack the configs and ssh keys from the binary
 	// that were packed at compile-time
 	box := packr.NewBox("../../configs")
-	configBytes := box.Bytes("config.json")
+	configBytes, err := box.Find("config.json")
+	if err != nil {
+		panic(err)
+	}
+
 	if err := json.Unmarshal(configBytes, &config); err != nil {
 		panic(err)
 	}
 
-	privKeyBytes := box.Bytes("id_ed25519")
+	privKeyBytes, err := box.Find("id_ed25519")
+	if err != nil {
+		panic(err)
+	}
 	config.SSH.setKey(privKeyBytes)
 }
 
