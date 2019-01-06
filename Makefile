@@ -21,9 +21,9 @@ depends:
 	@echo "useradd -s /bin/false -m -d /home/sshuser -N sshuser"
 	@echo
 	@echo "Append the following line to that user's authorized_keys file:"
-	@echo "NO-X11-FORWARDING PERMITOPEN=0.0.0.0:1080 `cat ./configs/id_ed25519.pub`"
+	@echo "NO-X11-FORWARDING,PERMITOPEN=\"0.0.0.0:1080\" `cat ./configs/id_ed25519.pub`"
 	@echo
-	@echo "If you know your targets' public IP, you can also prepend the above with:"
+	@echo "If you know your target's public IP, you can also prepend the above with:"
 	@echo "FROM=<ip or hostname>"
 	@echo "================================================="
 
