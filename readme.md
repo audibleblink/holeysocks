@@ -5,14 +5,37 @@ A simple cross-platform reverse socks proxy.
 
 ## Getting Started
 
+### As a module
+
+```go
+import github.com/audibleblink/HoleySocks/pkg/holeysocks
+
+func main() {
+        holeysocks.DarnSocks()
+}
+```
+
+
+```sh
+//... edit configs/config.json ...
+
+// needed for embedding configs in the binary
+go get -u github.com/gobuffalo/packr/...
+
+packr build ...
+```
+
+
+### As a standalone binary
+
 ```bash
 # needed for embedding configs in the binary
-go get -u github.com/gobuffalo/packr/v2/...
+go get -u github.com/gobuffalo/packr/...
 
 go get github.com/audibleblink/HoleySocks/...
 cd $GOPATH/src/github.com/audibleblink/HoleySocks
 
-# ... edit configs/config.json ...
+... edit configs/config.json ...
 
 make depends
 make
