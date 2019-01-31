@@ -12,6 +12,38 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// MainConfig contains SSH and Socks configuration variables
+type MainConfig struct {
+	SSH   sshConfig   `json:"ssh"`
+	Socks socksConfig `json:"socks"`
+}
+
+type sshConfig struct {
+	Username string `json:"username"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	PrivKey  []ssh.AuthMethod
+}
+
+func (s *sshConfig) setKey(keyBytes []byte) error {
+	privateKey, err := ssh.ParsePrivateKey(keyBytes)
+	if err != nil {
+		return err
+	}
+	auth := ssh.PublicKeys(privateKey)
+	s.PrivKey = []ssh.AuthMethod{auth}
+	return err
+}
+
+func (s *sshConfig) connectionString() string {
+	return fmt.Sprintf("%s:%v", s.Host, s.Port)
+}
+
+type socksConfig struct {
+	Local  string `json:"local"`
+	Remote string `json:"remote"`
+}
+
 // Config is the variable holding necessary variables for
 // establishing the reverse SSH connection
 var Config = MainConfig{}
@@ -106,7 +138,6 @@ func ForwardService() error {
 		// Swap IO from the local and remote hanles
 		handleClient(remote, local)
 	}
-	return err
 }
 
 // DarnSocks creates a new SOCKS5 server at the provided ports and
@@ -119,7 +150,7 @@ func DarnSocks() error {
 		panic(err)
 	}
 
-	// Create SOCKS5 proxy on localhost
+	// Create SOCKS5 proxy on localhost and publish to remote
 	result := make(chan error)
 	go func() {
 		go server.ListenAndServe("tcp", Config.Socks.Local)
