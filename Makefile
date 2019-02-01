@@ -4,7 +4,7 @@ OUT_LINUX=binaries/linux/${NAME}
 OUT_MACOS=binaries/macos/${NAME}
 OUT_WINDOWS=binaries/windows/${NAME}
 
-BUILD=packr2 build
+BUILD=packr build
 SRC=cmd/HoleySocks/*
 
 STRIP=-s
