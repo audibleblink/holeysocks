@@ -143,21 +143,28 @@ func ForwardService() error {
 // DarnSocks creates a new SOCKS5 server at the provided ports and
 // remote-forwards the port to another machine over SSH
 func DarnSocks() error {
-	// Create a SOCKS5 server
 	conf := &socks5.Config{}
 	server, err := socks5.New(conf)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	// Create SOCKS5 proxy on localhost and publish to remote
 	result := make(chan error)
 	go func() {
-		go server.ListenAndServe("tcp", Config.Socks.Local)
+		// Create a SOCKS5 server
+		err := server.ListenAndServe("tcp", Config.Socks.Local)
+		if err != nil {
+			result <- err
+		}
+	}()
+
+	go func() {
+		// Publish SOCKS to remote server
 		err = ForwardService()
 		if err != nil {
 			result <- err
 		}
 	}()
+
 	return <-result
 }
