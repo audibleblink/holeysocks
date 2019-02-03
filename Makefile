@@ -7,12 +7,10 @@ OUT_WINDOWS=binaries/windows/${NAME}
 BUILD=packr build
 SRC=cmd/HoleySocks/*
 
-STRIP=-s
-LINUX_LDFLAGS=--ldflags "${STRIP} -w"
-WIN_LDFLAGS=--ldflags "${STRIP} -w -H windowsgui"
+LDFLAGS=-ldflags "-s -w -X main.static=1"
+WIN_LDFLAGS=-ldflags "-s -w -X main.static=1 -H windowsgui"
 
 all: linux64 windows64 macos64 linux32 macos32 windows32 
-
 depends:
 	ssh-keygen -t ed25519 -f configs/id_ed25519 -N '' -C ${NAME}
 	@echo
@@ -28,15 +26,15 @@ depends:
 	@echo "================================================="
 
 linux64:
-	GOOS=linux GOARCH=amd64 ${BUILD} ${LINUX_LDFLAGS} -o ${OUT_LINUX}64 ${SRC}
+	GOOS=linux GOARCH=amd64 ${BUILD} ${LDFLAGS} -o ${OUT_LINUX}64 ${SRC}
 macos64:
-	GOOS=darwin GOARCH=amd64 ${BUILD} ${LINUX_LDFLAGS} -o ${OUT_MACOS}64 ${SRC}
+	GOOS=darwin GOARCH=amd64 ${BUILD} ${LDFLAGS} -o ${OUT_MACOS}64 ${SRC}
 windows64:
 	GOOS=windows GOARCH=amd64 ${BUILD} ${WIN_LDFLAGS} -o ${OUT_WINDOWS}64.exe ${SRC}
 linux32:
-	GOOS=linux GOARCH=386 ${BUILD} ${LINUX_LDFLAGS} -o ${OUT_LINUX}32 ${SRC}
+	GOOS=linux GOARCH=386 ${BUILD} ${LDFLAGS} -o ${OUT_LINUX}32 ${SRC}
 macos32:
-	GOOS=darwin GOARCH=386 ${BUILD} ${LINUX_LDFLAGS} -o ${OUT_MACOS}32 ${SRC}
+	GOOS=darwin GOARCH=386 ${BUILD} ${LDFLAGS} -o ${OUT_MACOS}32 ${SRC}
 windows32:
 	GOOS=windows GOARCH=386 ${BUILD} ${WIN_LDFLAGS} -o ${OUT_WINDOWS}32.exe ${SRC}
 
