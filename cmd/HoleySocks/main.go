@@ -72,12 +72,12 @@ func main() {
 		}
 	}
 
-	fmt.Printf("Serving on remote: %s\n", config.Socks.Remote)
 	err := holeysocks.DarnSocks(config)
 	if err != nil {
 		panic(err)
 	}
 
+	fmt.Printf("Serving on remote: %s\n", config.Socks.Remote)
 	// DarnSocks is concurrent, so we must keep main from exiting
 	select {}
 }
