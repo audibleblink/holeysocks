@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"time"
 
 	"github.com/armon/go-socks5"
 	"golang.org/x/crypto/ssh"
@@ -117,6 +118,8 @@ func ForwardService(config MainConfig) error {
 // remote-forwards the port to another machine over SSH
 func DarnSocks(config MainConfig) error {
 	conf := &socks5.Config{}
+	chErr := make(chan error)
+
 	server, err := socks5.New(conf)
 	if err != nil {
 		return err
@@ -126,17 +129,28 @@ func DarnSocks(config MainConfig) error {
 		// Create a SOCKS5 server
 		err = server.ListenAndServe("tcp", config.Socks.Local)
 		if err != nil {
-			fmt.Printf("ERR: %s", err.Error())
+			chErr <- fmt.Errorf("SOCKS: %v", err)
+			return
 		}
 	}()
 
 	go func() {
 		// Publish SOCKS to remote server
-		// TODO make this goroutine wait for SOCKS
 		err = ForwardService(config)
 		if err != nil {
-			fmt.Printf("ERR: %s", err.Error())
+			chErr <- fmt.Errorf("SSH: %v", err)
+			return
 		}
 	}()
-	return err
+
+	timeout := time.After(1000 * time.Millisecond)
+	for {
+
+		select {
+		case err := <-chErr:
+			return err
+		case <-timeout:
+			return nil
+		}
+	}
 }
