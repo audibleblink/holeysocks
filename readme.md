@@ -11,22 +11,19 @@ A simple cross-platform reverse socks proxy.
 import github.com/audibleblink/HoleySocks/pkg/holeysocks
 
 func main() {
-        holeysocks.DarnSocks()
+	config := holeysocks.MainConfig{}
+        configBytes, _ := ioutil.OpenFile("ssh.json")
+        json.Unmarshal(configBytes, &config)
+        holeysocks.DarnSocks(config)
 }
 ```
 
 
-```sh
-//... edit configs/config.json ...
-
-// needed for embedding configs in the binary
-go get -u github.com/gobuffalo/packr/...
-
-packr build ...
-```
-
-
 ### As a standalone binary
+
+It's possible to embed all the required parameters to start and forward
+the socks server with SSH so that cli flags are not needed.
+Do this by creating `config/ssh.json` and using the `-X main.static=1` ldflag.
 
 ```bash
 # needed for embedding configs in the binary
@@ -35,10 +32,29 @@ go get -u github.com/gobuffalo/packr/...
 go get github.com/audibleblink/HoleySocks/...
 cd $GOPATH/src/github.com/audibleblink/HoleySocks
 
-... edit configs/config.json ...
+... edit configs/ssh.json ...
 
 make depends
 make
+```
+
+To compile a generic binary without embedded configs, remote the `-X` ldflag from the `Makefile` or 
+just `go build` as necessary. You should get a binary that's configurable with these flags:
+
+```
+Usage of binaries/linux/HoleySocks64:
+  -sshuser string
+        [REQ] SSH user ong the host
+  -sshhost string
+        [REQ] SSH host with which to connect
+  -pkey string
+        [REQ] File path for private key
+  -rport int
+        SSH host port on which to bind the local SOCKS server (default 1080)
+  -socksport int
+        Bind port of the SOCKS server (default 1080)
+  -sshport int
+        SSH host destination port (default 22)
 ```
 
 Read the Makefile for more options
