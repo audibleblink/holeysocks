@@ -25,6 +25,8 @@ func main() {
 }
 ```
 
+See [here for full usage](cmd/HoleySocks/main.go)
+
 
 ### As a standalone binary
 
