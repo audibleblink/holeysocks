@@ -11,10 +11,17 @@ A simple cross-platform reverse socks proxy.
 import github.com/audibleblink/HoleySocks/pkg/holeysocks
 
 func main() {
+	//error handling removed for brevity
 	config := holeysocks.MainConfig{}
         configBytes, _ := ioutil.OpenFile("ssh.json")
         json.Unmarshal(configBytes, &config)
+	
+	sshKey, _ := ioutil.OpenFile("id_ed25519")
+	config.SSH.SetKey(sshKey)
+	
         holeysocks.DarnSocks(config)
+	// #DarnSocks runs two goroutines then returns so we have to keep main from returning
+	select {}
 }
 ```
 
