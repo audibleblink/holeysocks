@@ -1,4 +1,2 @@
 configs/*
-binaries/*
-*-packr.go
-packrd
+bin/*

@@ -1,41 +1,45 @@
-NAME=HoleySocks
+APP=holeysocks
+OUT=bin
 
-OUT_LINUX=binaries/linux/${NAME}
-OUT_MACOS=binaries/macos/${NAME}
-OUT_WINDOWS=binaries/windows/${NAME}
+GARBLE=${GOPATH}/bin/garble
+BUILD=garble -tiny build
 
-BUILD=packr build
-SRC=cmd/HoleySocks/*
+PLATFORMS = linux windows darwin
+target = $(word 1, $@)
 
-LDFLAGS=-ldflags "-s -w -X main.static=1"
-WIN_LDFLAGS=-ldflags "-s -w -X main.static=1 -H windowsgui"
+all: ${PLATFORMS}
 
-all: linux64 windows64 macos64 linux32 macos32 windows32 
-depends:
-	ssh-keygen -t ed25519 -f configs/id_ed25519 -N '' -C ${NAME}
+${PLATFORMS}: $(GARBLE) configs/id_ed25519
+	GOOS=${target} ${BUILD} ${STATIC} -o ${OUT}/${APP}-${target}
+
+release: all
+	@tar -czvf ${APP}.tar.gz ${OUT}
+
+clean: 
+	rm -rf ${OUT}* configs/id_ed25519
+
+$(GARBLE):
+	go get mvdan.cc/garble
+
+configs/id_ed25519:
+	ssh-keygen -t ed25519 -f ${target} -N '' -C ${APP} >/dev/null
 	@echo
 	@echo "================================================="
-	@echo "Create a user with a /bin/false shell on the target ssh server."
-	@echo "useradd -s /bin/false -m -d /home/sshuser -N sshuser"
+	@echo "                 IMPORTANT"
+	@echo "================================================="
 	@echo
-	@echo "Append the following line to that user's authorized_keys file:"
-	@echo "NO-X11-FORWARDING,PERMITOPEN=\"0.0.0.0:1080\" `cat ./configs/id_ed25519.pub`"
+	@echo "# The following creates a user with a /bin/false shell on the target ssh server."
+	@echo "# And appends the following line to that user's authorized_keys file"
 	@echo
-	@echo "If you know your target's public IP, you can also prepend the above with:"
+	@echo "HDIR=/home/sshuser"
+	@echo "useradd -s /bin/false -m -d \$${HDIR} -N sshuser"
+	@echo "mkdir -p \$${HDIR}/.ssh"
+	@echo "cat <<EOF >> \$${HDIR}/.ssh/authorized_keys"
+	@echo "NO-X11-FORWARDING,PERMITOPEN=\"0.0.0.0:1080\" `cat ${target}.pub`"
+	@echo "EOF"
+	@echo
+	@echo "# If you know your target's public IP, you can also prepend the above with:"
 	@echo "FROM=<ip or hostname>"
-	@echo "================================================="
+	@echo
 
-linux64:
-	GOOS=linux GOARCH=amd64 ${BUILD} ${LDFLAGS} -o ${OUT_LINUX}64 ${SRC}
-macos64:
-	GOOS=darwin GOARCH=amd64 ${BUILD} ${LDFLAGS} -o ${OUT_MACOS}64 ${SRC}
-windows64:
-	GOOS=windows GOARCH=amd64 ${BUILD} ${WIN_LDFLAGS} -o ${OUT_WINDOWS}64.exe ${SRC}
-linux32:
-	GOOS=linux GOARCH=386 ${BUILD} ${LDFLAGS} -o ${OUT_LINUX}32 ${SRC}
-macos32:
-	GOOS=darwin GOARCH=386 ${BUILD} ${LDFLAGS} -o ${OUT_MACOS}32 ${SRC}
-windows32:
-	GOOS=windows GOARCH=386 ${BUILD} ${WIN_LDFLAGS} -o ${OUT_WINDOWS}32.exe ${SRC}
-
-.PHONY: linux64 windows64 macos64 linux32 macos32 windows32
+.PHONY: ${PLATFORMS} all clean

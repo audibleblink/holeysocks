@@ -2,10 +2,6 @@ package holeysocks
 
 import (
 	"fmt"
-	"io"
-	"log"
-	"net"
-	"time"
 
 	"github.com/armon/go-socks5"
 	"golang.org/x/crypto/ssh"
@@ -39,40 +35,11 @@ func (s *sshConfig) connectionString() string {
 }
 
 type socksConfig struct {
-	Local  string `json:"local"`
 	Remote string `json:"remote"`
 }
 
-// Handle local client connections and tunnel data to the remote server
-// will use io.Copy - http://golang.org/pkg/io/#Copy
-// https://sosedoff.com/2015/05/25/ssh-port-forwarding-with-go.html
-func handleClient(client net.Conn, remote net.Conn) {
-	defer client.Close()
-	chDone := make(chan bool)
-
-	// Start remote -> local data transfer
-	go func() {
-		_, err := io.Copy(client, remote)
-		if err != nil {
-			log.Fatalln(fmt.Sprintf("error while copy remote->local: %s", err))
-		}
-		chDone <- true
-	}()
-
-	// Start local -> remote data transfer
-	go func() {
-		_, err := io.Copy(remote, client)
-		if err != nil {
-			log.Fatalln(fmt.Sprintf("error while copy local->remote: %s", err))
-		}
-		chDone <- true
-	}()
-
-	<-chDone
-}
-
-// ForwardService implements reverse port forwarding similar to the -R flag
-// in openssh-client. Configuration is done in the /configs/config.json file.
+// ForwardService implements reverse port forwarding, similar to the -R flag
+// in openssh-client. Configuration is done in the configs/ssh.json file.
 // NOTE The generated keys and config.json data are embedded in the binary so
 // take the appropriate precautions when setting up the ssh server user.
 func ForwardService(config MainConfig) error {
@@ -81,76 +48,30 @@ func ForwardService(config MainConfig) error {
 		Auth:            config.SSH.PrivKey,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
+
 	// Connect to SSH server
 	serverConn, err := ssh.Dial("tcp", config.SSH.connectionString(), sshClientConf)
 	if err != nil {
-		return fmt.Errorf("Dial INTO remote server error: %s", err)
+		return fmt.Errorf("dial INTO remote server error: %s", err)
 	}
 
-	// Publish the designated local port to the same port on the remote SSH server
+	// Create a listening port on the remote SSH server
 	remoteListener, err := serverConn.Listen("tcp", config.Socks.Remote)
 	if err != nil {
-		return fmt.Errorf(fmt.Sprintf("INFO: %s", err))
+		return fmt.Errorf("unable to bind on remote's port: %s", err)
 	}
 	defer remoteListener.Close()
 
-	// Handle incoming requests from the remote tunnel
-	for {
-		// Grab a handle to the pre-configured local port that will be sent to the remote
-		// SSH server
-		local, err := net.Dial("tcp", config.Socks.Local)
-		if err != nil {
-			return fmt.Errorf("Unable to start local listen: %s", err)
-		}
-
-		// Grab a handle on the remote port
-		remote, err := remoteListener.Accept()
-		if err != nil {
-			return fmt.Errorf("Unable to accept remote traffic locally: %s", err)
-		}
-
-		// Swap IO from the local and remote hanles
-		handleClient(remote, local)
+	// Create a net.Conn to the remote port and wait for a connection
+	socksClient, err := remoteListener.Accept()
+	if err != nil {
+		return fmt.Errorf("could not handle incoming socks client request: %s", err)
 	}
-}
 
-// DarnSocks creates a new SOCKS5 server at the provided ports and
-// remote-forwards the port to another machine over SSH
-func DarnSocks(config MainConfig) error {
 	conf := &socks5.Config{}
-	chErr := make(chan error)
-
 	server, err := socks5.New(conf)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed creating new Socks server: %s", err)
 	}
-
-	go func() {
-		// Create a SOCKS5 server
-		err = server.ListenAndServe("tcp", config.Socks.Local)
-		if err != nil {
-			chErr <- fmt.Errorf("SOCKS: %v", err)
-			return
-		}
-	}()
-
-	go func() {
-		// Publish SOCKS to remote server
-		err = ForwardService(config)
-		if err != nil {
-			chErr <- fmt.Errorf("SSH: %v", err)
-			return
-		}
-	}()
-
-	timeout := time.After(1000 * time.Millisecond)
-	for {
-
-		select {
-		case err := <-chErr:
-			return err
-		case <-timeout:
-			return nil
-		}
-	}
+	return server.ServeConn(socksClient)
 }
