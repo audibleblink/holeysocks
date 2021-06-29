@@ -2,24 +2,32 @@ APP=holeysocks
 OUT=bin
 
 GARBLE=${GOPATH}/bin/garble
+GODONUT=${GOPATH}/bin/go-donut
+
 BUILD=garble -tiny build
 
-PLATFORMS = linux windows darwin
-target = $(word 1, $@)
+PLATFORMS=linux windows darwin
+target=$(word 1, $@)
 
-all: ${PLATFORMS}
+all: ${PLATFORMS} shellcode
 
 ${PLATFORMS}: $(GARBLE) configs/id_ed25519
-	GOOS=${target} ${BUILD} ${STATIC} -o ${OUT}/${APP}-${target}
+	GOOS=${target} ${BUILD} -buildmode=pie -o ${OUT}/${APP}-${target}
+
+shellcode: $(GODONUT) windows
+	${GODONUT} --arch x64 --verbose --out ${OUT}/${APP}-win-sc.bin --in ${OUT}/${APP}-windows
 
 release: all
 	@tar -czvf ${APP}.tar.gz ${OUT}
 
 clean: 
-	rm -rf ${OUT}* configs/id_ed25519
+	rm -rf ${OUT} configs/id_ed25519 ${APP}.tar.gz
 
 $(GARBLE):
 	go get mvdan.cc/garble
+
+$(GODONUT):
+	go get -u github.com/Binject/go-donut
 
 configs/id_ed25519:
 	ssh-keygen -t ed25519 -f ${target} -N '' -C ${APP} >/dev/null
@@ -42,4 +50,4 @@ configs/id_ed25519:
 	@echo "FROM=<ip or hostname>"
 	@echo
 
-.PHONY: ${PLATFORMS} all clean
+.PHONY: ${PLATFORMS} all clean shellcode
