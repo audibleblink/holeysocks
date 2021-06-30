@@ -3,6 +3,7 @@ OUT=bin
 
 GARBLE=${GOPATH}/bin/garble
 GODONUT=${GOPATH}/bin/go-donut
+PKEY=configs/id_ed25519
 
 BUILD=garble -tiny build
 
@@ -11,25 +12,25 @@ target=$(word 1, $@)
 
 all: ${PLATFORMS} shellcode
 
-${PLATFORMS}: $(GARBLE) configs/id_ed25519
+${PLATFORMS}: $(GARBLE) $(PKEY)
 	GOOS=${target} ${BUILD} -buildmode=pie -o ${OUT}/${APP}-${target}
 
 shellcode: $(GODONUT) windows
-	${GODONUT} --arch x64 --verbose --out ${OUT}/${APP}-win-sc.bin --in ${OUT}/${APP}-windows
+	${GODONUT} --arch x64 --verbose --out ${OUT}/${APP}-${target}.bin --in ${OUT}/${APP}-windows
 
 release: all
-	@tar -czvf ${APP}.tar.gz ${OUT}
+	tar -czvf ${APP}.tar.gz ${OUT}
 
 clean: 
-	rm -rf ${OUT} configs/id_ed25519 ${APP}.tar.gz
+	rm -rf ${OUT} ${PKEY} ${APP}*
 
 $(GARBLE):
-	go get mvdan.cc/garble
+	@go get mvdan.cc/garble
 
 $(GODONUT):
-	go get -u github.com/Binject/go-donut
+	@go get github.com/Binject/go-donut
 
-configs/id_ed25519:
+$(PKEY):
 	ssh-keygen -t ed25519 -f ${target} -N '' -C ${APP} >/dev/null
 	@echo
 	@echo "================================================="
